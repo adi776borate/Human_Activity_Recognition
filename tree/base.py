@@ -12,7 +12,7 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from tree.utils import *
+from utils import *
 
 np.random.seed(42)
 
@@ -30,7 +30,8 @@ class DecisionTree:
         """
         Function to train and construct the decision tree
         """
-
+        # if output is discrete we need a classifier
+        # if output is real we need a regressor
         # If you wish your code can have cases for different types of input and output data (discrete, real)
         # Use the functions from utils.py to find the optimal attribute to split upon and then construct the tree accordingly.
         # You may(according to your implemetation) need to call functions recursively to construct the tree. 
