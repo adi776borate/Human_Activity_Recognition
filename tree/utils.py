@@ -63,7 +63,6 @@ def information_gain(Y: pd.Series, attr: pd.Series, criterion: str) -> float:
     Function to calculate the information gain using criterion (entropy, gini index or MSE)
     """
     Gain=0
-
     if (criterion=="entropy"):
         HS=entropy(Y)
         Gain+=HS
@@ -76,20 +75,19 @@ def information_gain(Y: pd.Series, attr: pd.Series, criterion: str) -> float:
             Gain-=(len(Si)/len(Y))*entropy(pd.Series(Si))
 
         return Gain
-    
-    elif (criterion=="mse"):
-        HS=mse(Y)
-        Gain+=HS
-        c=attr.unique()
-        for i in range(len(c)):
-            Si=[]
-            for j in range(len(attr)):
-                if attr.iloc[j]==c[i]:
-                    Si.append(Y.iloc[j])
-            Gain-=(len(Si)/len(Y))*mse(pd.Series(Si))
         
+    elif criterion == "mse":
+        HS = mse(Y)  # Initial MSE of the whole dataset
+        Gain = HS    # Start with the initial MSE
+        left = Y[attr]  # Subset of Y where attr is True (left side of the split)
+        right = Y[~attr]  # Subset of Y where attr is False (right side of the split)
+        
+        # Weighted average of the MSE after the split
+        left_weight = len(left) / len(Y)
+        right_weight = len(right) / len(Y)
+        Gain -= left_weight * mse(left) + right_weight * mse(right)
+
         return Gain
-    pass
 
 
 
@@ -111,7 +109,7 @@ def get_best_split(X: pd.Series, y: pd.Series, criterion: str='mse') -> float:
                 best_score = info_gain
                 best_split_value = split_value
     else:
-        best_score=information_gain(y, X, criterion)
+        best_score=information_gain(y, X, 'entropy')
         
     return best_split_value, best_score
 
@@ -138,13 +136,12 @@ def get_best_val(X: pd.Series, y: pd.Series, criterion: str='entropy') -> str:
             split_value = (sorted_X.iloc[i-1] + sorted_X.iloc[i]) / 2
             
             left = sorted_X <= split_value
-            info_gain = information_gain(y, left, criterion)
+            info_gain = information_gain(y, left, 'mse')
             if info_gain > best_info_gain:
                 best_info_gain = info_gain
                 best_val = split_value
             
     return best_val, best_info_gain
-
 
 
 def opt_split_attribute(X: pd.DataFrame, y: pd.Series, features: pd.Series):
@@ -178,41 +175,34 @@ def opt_split_attribute(X: pd.DataFrame, y: pd.Series, features: pd.Series):
                 best_feature=i
     return best_feature, best_split
 
+
 def split_data(X: pd.DataFrame, y: pd.Series, attribute, value):
     """
-    Funtion to split the data according to an attribute.
-    If needed you can split this function into 2, one for discrete and one for real valued features.
-    You can also change the parameters of this function according to your implementation.
-
-    attribute: attribute/feature to split upon
-    value: value of that attribute to split upon
-
-    return: splitted data(Input and output)
+    Function to split the data according to an attribute.
+    Handles both discrete and real-valued features.
     """
 
-    splits = []
-
     if value is None:
-        # Split based on all unique values of the attribute
+        # For discrete features
+        splits = []
         unique_values = X[attribute].unique()
         
         for u in unique_values:
             X_split = X[X[attribute] == u]
             y_split = y[X[attribute] == u]
-            # Append both DataFrame and Series
             splits.append((X_split, y_split))
     else:
-        # Split based on the provided value
+        # For real-valued features
         X_split_left = X[X[attribute] <= value]
         y_split_left = y[X[attribute] <= value]
-        splits.append((X_split_left, y_split_left))
         
         X_split_right = X[X[attribute] > value]
         y_split_right = y[X[attribute] > value]
-        splits.append((X_split_right, y_split_right))
-
+        
+        splits = [(X_split_left, y_split_left), (X_split_right, y_split_right)]
 
     return splits
+
 
 
 class Node:
@@ -222,25 +212,93 @@ class Node:
         self.children = []
         self.value = value          # Value if it's a leaf node (used for prediction)
 
+
+
 def create_Tree(X: pd.DataFrame, y: pd.Series, depth: int, max_depth: int):
-    # Choosing the best attribute and split
-    # Splitting the dataframe
-    # Doing this until depth is reached
+    """
+    Recursive function to create a decision tree.
+    """
+    # Check if we're at max depth or if the node is pure
+    if depth >= max_depth or len(np.unique(y)) == 1:
+        # Create a leaf node
+        branch = Node()
+        leaf_value = y.mode()[0] if not check_ifreal(y) else y.mean()
+        print(leaf_value)
+        branch.value=leaf_value
+        return branch
 
-
-    if depth==max_depth:
-        print("Max. depth reached")
-        return 
-    
+    # Get the best feature and split point
     features = X.columns
     best_feature, best_split = opt_split_attribute(X, y, features)
-    splits=split_data(X, y, best_feature, best_split)
-    branch = Node(best_feature, best_split)
+
+    # If no valid split is found, create a leaf node
+    if best_feature is None:
+        branch = Node()
+        leaf_value = y.mode()[0] if not check_ifreal(y) else y.mean()
+        print(leaf_value)
+        branch.value=leaf_value
+        return branch
+
+    # Create a decision node
+    branch = Node(feature=best_feature, threshold=best_split)
+
+    # Split the dataset and create child nodes
+    splits = split_data(X, y, best_feature, best_split)
     for X_split, y_split in splits:
         child_node = create_Tree(X_split, y_split, depth + 1, max_depth)
         branch.children.append(child_node)
-    print(branch.children)
+
     return branch
+
+
+
+from sklearn.datasets import load_iris
+import pandas as pd
+
+# Load the Iris dataset
+iris = load_iris()
+
+# Convert to a DataFrame
+iris_df = pd.DataFrame(data=iris.data, columns=iris.feature_names)
+species = pd.Series(iris.target)
+
+# Display the first few rows of the DataFrame
+root = Node()
+root = create_Tree(iris_df, species, 0, 9)
+
+def Display_Node(root: Node):
+    print(root.feature, root.threshold)
+    for i in range(len(root.children)):
+        branch = Node()
+        branch = root.children[i]
+        Display_Node(branch)
+
+Display_Node(root)
+
+from sklearn.datasets import load_iris
+from sklearn.tree import DecisionTreeClassifier, export_text
+import pandas as pd
+
+X = iris.data
+y = iris.target
+feature_names = iris.feature_names
+
+# Create and fit the decision tree classifier
+clf = DecisionTreeClassifier()
+clf.fit(X, y)
+
+# Print the decision tree structure
+# Using export_text to get a textual representation of the decision tree
+tree_rules = export_text(clf, feature_names=feature_names)
+print(tree_rules)
+
+
+
+
+
+
+
+
 
 
 
@@ -252,7 +310,6 @@ X_real_real = pd.DataFrame({
 })
 y_real = pd.Series([5500, 60000, 90000, 120000, 35000, 80000, 15000, 190000, 45000, 90000], name='Salary')
 
-print(create_Tree(X_real_real, y_real, 0, 2))
 
 # Combination 2: Real Input, Discrete Output
 X_real_discrete = pd.DataFrame({
