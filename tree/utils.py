@@ -11,7 +11,7 @@ def one_hot_encoding(X: pd.DataFrame) -> pd.DataFrame:
     Function to perform one hot encoding on the input data
     """
 
-    pass
+    return pd.get_dummies(X)
 
 def check_ifreal(y: pd.Series) -> bool:
     """
@@ -26,7 +26,6 @@ def check_ifreal(y: pd.Series) -> bool:
             return True
     else:
         return False
-    pass
 
 
 def entropy(Y: pd.Series) -> float:
@@ -44,7 +43,6 @@ def entropy(Y: pd.Series) -> float:
         p=m/n
         H+=p*np.log2(p)
     return -1*H
-    pass
 
 
 def mse(Y: pd.Series) -> float:
@@ -55,7 +53,6 @@ def mse(Y: pd.Series) -> float:
     sq_err=(Y-avg)**2
     mean_sq_err=sq_err.mean()
     return mean_sq_err
-    pass
 
 
 def information_gain(Y: pd.Series, attr: pd.Series, criterion: str) -> float:
@@ -200,114 +197,5 @@ def split_data(X: pd.DataFrame, y: pd.Series, attribute, value):
         splits = [(X_split_left, y_split_left), (X_split_right, y_split_right)]
 
     return splits
-
-
-class Node:
-    def __init__(self, feature=None, threshold=None, value=None):
-        self.feature = feature      # Index of the feature to split on
-        self.threshold = threshold  # Threshold value to split on
-        self.children = []
-        self.value = value          # Value if it's a leaf node (used for prediction)
-
-
-
-def create_Tree(X: pd.DataFrame, y: pd.Series, depth: int, max_depth: int, real_target: bool, real_features):
-    """
-    Recursive function to create a decision tree.
-    """
-    # Check if we're at max depth or if the node is pure
-    if depth >= max_depth or len(np.unique(y)) == 1:
-        # Create a leaf node
-        branch = Node()
-        leaf_value = y.mode()[0] if not real_target else y.mean()
-        branch.value=leaf_value
-        return branch
-
-    # Get the best feature and split point
-    features = X.columns
-    best_feature, best_split = opt_split_attribute(X, y, features, real_target, real_features)
-
-    # If no valid split is found, create a leaf node
-    if best_feature is None:
-        branch = Node()
-        leaf_value = y.mode()[0] if not real_target else y.mean()
-        branch.value=leaf_value
-        return branch
-
-    # Create a decision node
-    if best_split != None:
-        branch = Node(feature=best_feature, threshold=best_split)
-    else:
-        print(X[best_feature].unique())
-        branch = Node(feature=best_feature, threshold=X[best_feature].unique())
-
-    # Split the dataset and create child nodes
-    splits = split_data(X, y, best_feature, best_split)
-    for X_split, y_split in splits:
-        child_node = create_Tree(X_split, y_split, depth + 1, max_depth, real_target, real_features)
-        branch.children.append(child_node)
-
-    return branch
-
-
-
-
-from sklearn.datasets import load_iris
-import pandas as pd
-url = "train.csv"
-df = pd.read_csv(url)
-df = df.iloc[:200, :]
-df = df.drop(columns=['Name','Sex','Ticket','Cabin','Embarked'])
-X = df.drop(columns=['Survived'])
-y = df['Survived']
-
-print(X)
-print("---------------------")
-print(y)
-
-real_target = check_ifreal(y)
-real_features = []
-for i in range(X.shape[1]):
-    print(X.columns[i])
-    if check_ifreal(X.iloc[:, i]):
-        real_features.append(1)
-    else:
-        real_features.append(0)
-
-# Display the first few rows of the DataFrame
-root = Node()
-root = create_Tree(X, y, 0, 3, real_target, real_features)
-def Display_Node(root: Node, depth=0):
-    indent = "    " * depth  # Create indentation based on the depth of the node
-    
-    if root.feature is not None:
-        if root.threshold is None:
-            print(f"{indent}Node: Feature = {root.feature}, Discrete Value = {root.threshold}")
-        else:
-            print(f"{indent}Node: Feature = {root.feature}, Threshold = {root.threshold}")
-    else:
-        print(f"{indent}Leaf: Value = {root.value}")
-    
-    for child in root.children:
-        Display_Node(child, depth + 1)  # Recursively display child nodes with increased depth
-
-# Display the tree starting from the root
-Display_Node(root)
-
-print("---------------------")
-
-from sklearn.tree import DecisionTreeClassifier, export_text
-clf = DecisionTreeClassifier(max_depth=3)
-clf.fit(X, y)
-
-# Print the decision tree structure
-tree_rules = export_text(clf, feature_names=X.columns.tolist())
-print(tree_rules)
-
-print("---------------------")
-
-
-
-
 
 
