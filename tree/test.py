@@ -49,7 +49,8 @@ for i in range(X.shape[1]):
 dt = DecisionTree("entropy")
 dt.fit(X,y)
 dt.plot()
-
+dt.predict(X[50:100])
+print(dt.predictions)
 print("---------------------")
 
 from sklearn.tree import DecisionTreeClassifier, export_text

@@ -80,7 +80,6 @@ class DecisionTree:
 
             return branch
         
-
         real_target = check_ifreal(y)
         real_features = []
         for i in range(X.shape[1]):
@@ -101,7 +100,55 @@ class DecisionTree:
 
         # Traverse the tree you constructed to return the predicted values for the given test inputs.
 
-        pass
+        def predict_single(root, X_row: pd.Series):
+            """
+            Predict the output for a single data row using the decision tree.
+            
+            Parameters:
+            - root: The root node of the decision tree.
+            - X_row: A pandas Series containing a single row of features.
+            
+            Returns:
+            - The predicted value.
+            """
+            current_node = root
+            
+            while current_node.children:
+                # Check if the feature is real or discrete
+                feature_value = X_row[current_node.feature]
+                
+                if isinstance(current_node.threshold, (int, float)):
+                    # Real feature: Compare with the threshold
+                    if feature_value <= current_node.threshold:
+                        current_node = current_node.children[0]
+                    else:
+                        current_node = current_node.children[1]
+                else:
+                    # Discrete feature: Check if the value matches any in the threshold list
+                    if feature_value in current_node.threshold:
+                        current_node = current_node.children[0]
+                    else:
+                        current_node = current_node.children[1]
+            
+            # Return the value in the leaf node
+            return current_node.value
+
+        def predict(root, X_test: pd.DataFrame):
+            """
+            Predict the output for each row in the test DataFrame using the decision tree.
+            
+            Parameters:
+            - root: The root node of the decision tree.
+            - X_test: A pandas DataFrame containing test data.
+            
+            Returns:
+            - A pandas Series containing the predictions for each row in X_test.
+            """
+            predictions = X_test.apply(lambda row: predict_single(root, row), axis=1)
+            return predictions
+        
+        self.predictions = predict(self.tree,X)
+
 
     def plot(self) -> None:
         """
