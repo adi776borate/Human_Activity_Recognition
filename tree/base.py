@@ -22,9 +22,15 @@ class DecisionTree:
     criterion: Literal["information_gain", "gini_index"]  # criterion won't be used for regression
     max_depth: int  # The maximum depth the tree can grow to
 
-    def __init__(self, criterion, max_depth=5):
+    def __init__(self,criterion="gini_index" ,feature=None, threshold=None, max_depth = 5,value=None):
+        self.feature = feature      # Index of the feature to split on
+        self.threshold = threshold  # Threshold value to split on
+        self.children = []
+        self.value = value          # Value if it's a leaf node (used for prediction)
         self.criterion = criterion
         self.max_depth = max_depth
+        self.depth=0
+
 
     def fit(self, X: pd.DataFrame, y: pd.Series) -> None:
         """
@@ -36,7 +42,57 @@ class DecisionTree:
         # Use the functions from utils.py to find the optimal attribute to split upon and then construct the tree accordingly.
         # You may(according to your implemetation) need to call functions recursively to construct the tree. 
 
-        pass
+        def create_Tree(X: pd.DataFrame, y: pd.Series, depth: int, max_depth: int, real_target: bool, real_features):
+            """
+            Recursive function to create a decision tree.
+            """
+            # Check if we're at max depth or if the node is pure
+            if (depth >= max_depth) or (np.unique(y).shape[0] == 1):
+                # Create a leaf node
+                branch = DecisionTree(self.criterion)
+                leaf_value = y.mode()[0] if not real_target else y.mean()
+                branch.value=leaf_value
+                return branch
+
+            # Get the best feature and split point
+            features = X.columns
+            best_feature, best_split = opt_split_attribute(X, y, features, real_target, real_features)
+
+            # If no valid split is found, create a leaf node
+            if best_feature is None:
+                branch = DecisionTree(self.criterion)
+                leaf_value = y.mode()[0] if not real_target else y.mean()
+                branch.value=leaf_value
+                return branch
+
+            # Create a decision node
+            if best_split != None:
+                branch = DecisionTree(self.criterion,feature=best_feature, threshold=best_split)
+            else:
+                print(X[best_feature].unique())
+                branch = DecisionTree(self.criterion,feature=best_feature, threshold=X[best_feature].unique())
+
+            # Split the dataset and create child nodes
+            splits = split_data(X, y, best_feature, best_split)
+            for X_split, y_split in splits:
+                child_node = create_Tree(X_split, y_split, depth + 1, max_depth, real_target, real_features)
+                branch.children.append(child_node)
+
+            return branch
+        
+
+        real_target = check_ifreal(y)
+        real_features = []
+        for i in range(X.shape[1]):
+            print(X.columns[i])
+            if check_ifreal(X.iloc[:, i]):
+                real_features.append(1)
+            else:
+                real_features.append(0)
+        
+        self.tree = create_Tree(X,y,self.depth,self.max_depth,real_target,real_features)
+        
+
 
     def predict(self, X: pd.DataFrame) -> pd.Series:
         """
@@ -59,4 +115,19 @@ class DecisionTree:
             N: Class C
         Where Y => Yes and N => No
         """
-        pass
+        def Display_Node(root, depth=0):
+            indent = "    " * depth  # Create indentation based on the depth of the node
+            
+            if root.feature is not None:
+                if root.threshold is None:
+                    print(f"{indent}Node: Feature = {root.feature}, Discrete Value = {root.threshold}")
+                else:
+                    print(f"{indent}Node: Feature = {root.feature}, Threshold = {root.threshold}")
+            else:
+                print(f"{indent}Leaf: Value = {root.value}")
+            
+            for child in root.children:
+                Display_Node(child, depth + 1)  # Recursively display child nodes with increased depth
+
+        # Display the tree starting from the root
+        Display_Node(self.tree)

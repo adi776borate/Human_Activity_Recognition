@@ -11,7 +11,7 @@ def one_hot_encoding(X: pd.DataFrame) -> pd.DataFrame:
     Function to perform one hot encoding on the input data
     """
 
-    pass
+    return pd.get_dummies(X)
 
 def check_ifreal(y: pd.Series) -> bool:
     """
@@ -26,7 +26,6 @@ def check_ifreal(y: pd.Series) -> bool:
             return True
     else:
         return False
-    pass
 
 
 def entropy(Y: pd.Series) -> float:
@@ -44,7 +43,6 @@ def entropy(Y: pd.Series) -> float:
         p=m/n
         H+=p*np.log2(p)
     return -1*H
-    pass
 
 
 def mse(Y: pd.Series) -> float:
@@ -55,7 +53,6 @@ def mse(Y: pd.Series) -> float:
     sq_err=(Y-avg)**2
     mean_sq_err=sq_err.mean()
     return mean_sq_err
-    pass
 
 
 def information_gain(Y: pd.Series, attr: pd.Series, criterion: str) -> float:
@@ -202,6 +199,7 @@ def split_data(X: pd.DataFrame, y: pd.Series, attribute, value):
     return splits
 
 
+<<<<<<< HEAD
 class Node:
     def __init__(self, feature=None, threshold=None, value=None):
         self.feature = feature      # Index of the feature to split on
@@ -354,3 +352,5 @@ print(predictions)
 
 
 
+=======
+>>>>>>> c2b8fb6758974eb93fca6bbb17b995342b5c151c
