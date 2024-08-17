@@ -257,7 +257,7 @@ import pandas as pd
 url = "train.csv"
 df = pd.read_csv(url)
 df = df.iloc[:200, :]
-df = df.drop(columns=['Name','Sex','Ticket','Cabin','Embarked'])
+df = df.drop(columns=['Name','PassengerId','Ticket'])
 X = df.drop(columns=['Survived'])
 y = df['Survived']
 
@@ -277,6 +277,7 @@ for i in range(X.shape[1]):
 # Display the first few rows of the DataFrame
 root = Node()
 root = create_Tree(X, y, 0, 3, real_target, real_features)
+
 def Display_Node(root: Node, depth=0):
     indent = "    " * depth  # Create indentation based on the depth of the node
     
@@ -291,22 +292,64 @@ def Display_Node(root: Node, depth=0):
     for child in root.children:
         Display_Node(child, depth + 1)  # Recursively display child nodes with increased depth
 
-# Display the tree starting from the root
-Display_Node(root)
 
-print("---------------------")
+def predict_single(root: Node, X_row: pd.Series):
+    """
+    Predict the output for a single data row using the decision tree.
+    
+    Parameters:
+    - root: The root node of the decision tree.
+    - X_row: A pandas Series containing a single row of features.
+    
+    Returns:
+    - The predicted value.
+    """
+    current_node = root
+    
+    while current_node.children:
+        # Check if the feature is real or discrete
+        feature_value = X_row[current_node.feature]
+        
+        if isinstance(current_node.threshold, (int, float)):
+            # Real feature: Compare with the threshold
+            if feature_value <= current_node.threshold:
+                current_node = current_node.children[0]
+            else:
+                current_node = current_node.children[1]
+        else:
+            # Discrete feature: Check if the value matches any in the threshold list
+            if feature_value in current_node.threshold:
+                current_node = current_node.children[0]
+            else:
+                current_node = current_node.children[1]
+    
+    # Return the value in the leaf node
+    return current_node.value
 
-from sklearn.tree import DecisionTreeClassifier, export_text
-clf = DecisionTreeClassifier(max_depth=3)
-clf.fit(X, y)
+def predict(root: Node, X_test: pd.DataFrame):
+    """
+    Predict the output for each row in the test DataFrame using the decision tree.
+    
+    Parameters:
+    - root: The root node of the decision tree.
+    - X_test: A pandas DataFrame containing test data.
+    
+    Returns:
+    - A pandas Series containing the predictions for each row in X_test.
+    """
+    predictions = X_test.apply(lambda row: predict_single(root, row), axis=1)
+    return predictions
 
-# Print the decision tree structure
-tree_rules = export_text(clf, feature_names=X.columns.tolist())
-print(tree_rules)
+# Example usage with a test DataFrame X_test
+# X_test = pd.DataFrame(...)  # Define your test DataFrame
+# predictions = predict(root, X_test)
+# print(predictions)
 
-print("---------------------")
 
-
+predictions = predict(root, X)
+score = np.sum(predictions==y)
+print(score/2)
+print(predictions)
 
 
 
