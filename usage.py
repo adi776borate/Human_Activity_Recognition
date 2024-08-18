@@ -10,7 +10,7 @@ You will be expected to use this to make trees for:
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from tree.base import DecisionTree
+from tree.base import *
 from metrics import *
 
 np.random.seed(42)
@@ -22,12 +22,10 @@ P = 5
 X = pd.DataFrame(np.random.randn(N, P))
 y = pd.Series(np.random.randn(N))
 
-
 for criteria in ["information_gain", "gini_index"]:
     tree = DecisionTree(criterion=criteria)  # Split based on Inf. Gain
     tree.fit(X, y)
     y_hat = tree.predict(X)
-    tree.plot()
     print("Criteria :", criteria)
     print("RMSE: ", rmse(y_hat, y))
     print("MAE: ", mae(y_hat, y))

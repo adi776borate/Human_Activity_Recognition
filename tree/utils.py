@@ -17,7 +17,7 @@ def check_ifreal(y: pd.Series) -> bool:
     """
     Function to check if the given series has real or discrete values
     """
-    if np.issubdtype(y.dtype, np.number):
+    if pd.api.types.is_numeric_dtype(y):
         unique=len(y.unique())
         total=y.count()
         if (unique/total)<0.1:  
@@ -55,6 +55,11 @@ def mse(Y: pd.Series) -> float:
     return mean_sq_err
 
 
+def gini(y: pd.Series) -> float:
+        classes = y.value_counts(normalize=True)
+        return 1 - np.sum(classes ** 2)
+
+
 def information_gain(Y: pd.Series, attr: pd.Series, criterion: str) -> float:
     """
     Function to calculate the information gain using criterion (entropy, gini index or MSE)
@@ -63,7 +68,7 @@ def information_gain(Y: pd.Series, attr: pd.Series, criterion: str) -> float:
     if (criterion=="entropy"):
         HS=entropy(Y)
         Gain+=HS
-        c=attr.unique()
+        c = attr.unique()
         for i in range(len(c)):
             Si=[]
             for j in range(len(attr)):
@@ -72,14 +77,26 @@ def information_gain(Y: pd.Series, attr: pd.Series, criterion: str) -> float:
             Gain-=(len(Si)/len(Y))*entropy(pd.Series(Si))
 
         return Gain
-        
+    
+    elif criterion == "gini_index":
+        HS = gini(Y)
+        Gain = HS
+        c = attr.unique()
+        for i in range(len(c)):
+            Si=[]
+            for j in range(len(attr)):
+                if attr.iloc[j] == c[i]:
+                    Si.append(Y.iloc[j])
+            Gain-=(len(Si)/len(Y))*gini(pd.Series(Si))
+
+        return Gain
+
     elif criterion == "mse":
-        HS = mse(Y)  # Initial MSE of the whole dataset
-        Gain = HS    # Start with the initial MSE
-        left = Y[attr]  # Subset of Y where attr is True (left side of the split)
-        right = Y[~attr]  # Subset of Y where attr is False (right side of the split)
-        
-        # Weighted average of the MSE after the split
+        HS = mse(Y)
+        Gain = HS
+        left = Y[attr]
+        right = Y[~attr]
+
         left_weight = len(left) / len(Y)
         right_weight = len(right) / len(Y)
         Gain -= left_weight * mse(left) + right_weight * mse(right)
@@ -87,8 +104,7 @@ def information_gain(Y: pd.Series, attr: pd.Series, criterion: str) -> float:
         return Gain
 
 
-
-def get_best_split(X: pd.Series, y: pd.Series,  real, criterion: str='mse') -> float:
+def get_best_split(X: pd.Series, y: pd.Series,  real, criterion: str='information_gain') -> float:
     best_split_value = None
     best_score = -float('inf') 
 
@@ -101,22 +117,32 @@ def get_best_split(X: pd.Series, y: pd.Series,  real, criterion: str='mse') -> f
             split_value = (sorted_X.iloc[i-1] + sorted_X.iloc[i]) / 2
             
             left = sorted_X <= split_value
-            info_gain = information_gain(y, left, criterion)
+            if (criterion=='information_gain'):
+                info_gain = information_gain(y, left, 'mse')
+            else:
+                info_gain = information_gain(y, left, 'mse')
+
             if info_gain > best_score:
                 best_score = info_gain
                 best_split_value = split_value
     else:
-        best_score=information_gain(y, X, criterion)
+        if (criterion=='information_gain'):
+            best_score = information_gain(y, X, 'mse')
+        else:
+            best_score = information_gain(y, X, 'mse')
         
     return best_split_value, best_score
 
 
-def get_best_val(X: pd.Series, y: pd.Series, real, criterion: str='entropy') -> str:
+def get_best_val(X: pd.Series, y: pd.Series, real, criterion: str='information_gain') -> str:
     best_val = None
     best_info_gain = -float('inf')
     
     if (real==0):
-        best_info_gain=information_gain(y, X, criterion)
+        if (criterion=='information_gain'):
+            best_info_gain=information_gain(y, X, 'entropy')
+        else:
+            best_info_gain=information_gain(y, X, 'gini_index')
         
     else:
         sorted_indices = np.argsort(X)
@@ -127,7 +153,11 @@ def get_best_val(X: pd.Series, y: pd.Series, real, criterion: str='entropy') -> 
             split_value = (sorted_X.iloc[i-1] + sorted_X.iloc[i]) / 2
             
             left = sorted_X <= split_value
-            info_gain = information_gain(y, left, criterion)
+            if (criterion=='information_gain'):
+                info_gain = information_gain(y, left, 'entropy')
+            else:
+                info_gain = information_gain(y, left, 'gini_index')
+
             if info_gain > best_info_gain:
                 best_info_gain = info_gain
                 best_val = split_value
@@ -135,7 +165,7 @@ def get_best_val(X: pd.Series, y: pd.Series, real, criterion: str='entropy') -> 
     return best_val, best_info_gain
 
 
-def opt_split_attribute(X: pd.DataFrame, y: pd.Series, features: pd.Series, real_target: bool, real_feature):
+def opt_split_attribute(X: pd.DataFrame, y: pd.Series, features: pd.Series, real_target: bool, real_feature, criterion: str):
     """
     Function to find the optimal attribute to split about.
     If needed you can split this function into 2, one for discrete and one for real valued features.
@@ -153,16 +183,16 @@ def opt_split_attribute(X: pd.DataFrame, y: pd.Series, features: pd.Series, real
     if real_target:
         c = 0
         for i in features:
-                split, info_gain=get_best_split(X.loc[:,i], y, real_feature[c])
-                c += 1
-                if info_gain>best_info_gain:
-                    best_info_gain=info_gain
-                    best_split=split
-                    best_feature=i
+            split, info_gain = get_best_split(X.loc[:,i], y, real_feature[c], criterion)
+            c += 1
+            if info_gain>best_info_gain:
+                best_info_gain=info_gain
+                best_split=split
+                best_feature=i
     else:
         c = 0
         for i in features:
-            split, info_gain=get_best_val(X.loc[:,i], y, real_feature[c])
+            split, info_gain = get_best_val(X.loc[:,i], y, real_feature[c], criterion)
             c += 1
             if info_gain>best_info_gain:
                 best_info_gain=info_gain
@@ -195,5 +225,5 @@ def split_data(X: pd.DataFrame, y: pd.Series, attribute, value):
         y_split_right = y[X[attribute] > value]
         
         splits = [(X_split_left, y_split_left), (X_split_right, y_split_right)]
-
+        
     return splits
