@@ -102,21 +102,28 @@ def predict_result(root: Node, X_test: pd.DataFrame) -> pd.Series:
     
     return predictions
 
-
-
-def Display_Node(root: Node, depth=0):
-    indent = "    " * depth  # Create indentation based on the depth of the node
+def Display_Node(root: Node, depth=0, decision="?(X"):
+    indent = "    " * depth  # Indentation based on depth
     
-    if root.feature is not None:
-        if root.threshold is None:
-            print(f"{indent}Node: Feature = {root.feature}, Discrete Value = {root.threshold}")
-        else:
-            print(f"{indent}Node: Feature = {root.feature}, Threshold = {root.threshold}")
+    if root.value is not None:
+        print(f" Leaf: Value = {root.value}")
+    elif isinstance(root.threshold, (int, float)):
+        # Handle real-valued splits
+        print(f" {decision}{root.feature} <= {root.threshold: .3f})")
+        # Yes branch (<= threshold)
+        print(f"{indent}    Y:", end="")
+        Display_Node(root.children[0], depth + 1)
+        # No branch (> threshold)
+        print(f"{indent}    N:", end="")
+        Display_Node(root.children[1], depth + 1)
     else:
-        print(f"{indent}Leaf: Value = {root.value}")
-    
-    for child in root.children:
-        Display_Node(child, depth + 1)  # Recursively display child nodes with increased depth
+        # Handle discrete-valued splits
+        print(f" {decision} {root.feature} in {list(root.threshold)})")
+        for i, value in enumerate(root.threshold):
+            # Properly indent and print each branch corresponding to discrete values
+            branch_decision = f"{value}:"
+            print(f"{indent}    {branch_decision}", end="")
+            Display_Node(root.children[i], depth + 1)
 
 
 
