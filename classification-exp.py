@@ -20,32 +20,29 @@ y = pd.Series(y)
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=3)
 
-# # Write the code for Q2 a) and b) below. Show your results.
-# for criteria in ["information_gain", "gini_index"]:
-#     tree = DecisionTree(criterion=criteria, max_depth=10)
-#     tree.fit(X_train, y_train)
-#     y_hat = tree.predict(X_test)
-#     tree.plot()
-#     print("Criteria :", criteria)
-#     print("Accuracy: ", accuracy(y_hat, y_test))
-#     for cls in y_test.unique():
-#         print("Precision: ", precision(y_hat, y, cls))
-#         print("Recall: ", recall(y_hat, y, cls))
+# Write the code for Q2 a) and b) below. Show your results.
+for criteria in ["information_gain", "gini_index"]:
+    tree = DecisionTree(criterion=criteria, max_depth=10)
+    tree.fit(X_train, y_train)
+    y_hat = tree.predict(X_test)
+    tree.plot()
+    print("Criteria :", criteria)
+    print("Accuracy: ", accuracy(y_hat, y_test))
+    for cls in y_test.unique():
+        print("Precision: ", precision(y_hat, y, cls))
+        print("Recall: ", recall(y_hat, y, cls))
 
 
 
 
 # Define the number of folds (k)
-k = 2
+k = 5
 
-# Initialize lists to store predictions and accuracies
 predictions = {}
 accuracies = []
 
-# Calculate the size of each fold
 fold_size = len(X_train) // k
 
-# Perform k-fold cross-validation
 for i in range(k):
     # Split the data into training and test sets
     test_start = i * fold_size
@@ -92,7 +89,6 @@ for i in range(k):
         model.fit(training_set, training_labels)
         y_pred = model.predict(test_set)
         acc = accuracy(y_pred, test_labels)
-        print(acc)
         if (acc>max_accuracy):
             max_accuracy = acc
     

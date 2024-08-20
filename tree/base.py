@@ -106,7 +106,7 @@ def Display_Node(root: Node, depth=0, decision="?(X"):
     indent = "    " * depth  # Indentation based on depth
     
     if root.value is not None:
-        print(f" Leaf: Value = {root.value}")
+        print(f" Leaf: Value = {root.value: .3f}")
     elif isinstance(root.threshold, (int, float)):
         # Handle real-valued splits
         print(f" {decision}{root.feature} <= {root.threshold: .3f})")

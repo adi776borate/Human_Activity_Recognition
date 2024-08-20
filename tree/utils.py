@@ -94,15 +94,12 @@ def information_gain(Y: pd.Series, attr: pd.Series, criterion: str) -> float:
     elif criterion == "mse":
         HS = mse(Y)
         Gain = HS
-        left = Y[attr]
-        right = Y[~attr]
-
-        left_weight = len(left) / len(Y)
-        right_weight = len(right) / len(Y)
-        Gain -= left_weight * mse(left) + right_weight * mse(right)
-
+        c = attr.unique()
+        for i in range(len(c)):
+            Si = Y[attr == c[i]]
+            Gain -= (len(Si) / len(Y)) * mse(Si)
+            
         return Gain
-
 
 def get_best_split(X: pd.Series, y: pd.Series,  real, criterion: str='information_gain') -> float:
     best_split_value = None
