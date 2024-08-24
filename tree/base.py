@@ -48,7 +48,7 @@ def create_Tree(X: pd.DataFrame, y: pd.Series, depth: int, max_depth: int, real_
     if best_feature is None:
         branch = Node()
         if len(y) == 0:
-            leaf_value = None  # or a default value, like y.mean() from the parent node
+            leaf_value = None
         else:
             leaf_value = y.mode()[0] if not real_target else y.mean()
         branch.value=leaf_value
@@ -139,9 +139,12 @@ class DecisionTree:
         self.root = None
         self.max_depth = max_depth
     
-    def fit(self, X: pd.DataFrame, y: pd.Series) -> None:        
+    def fit(self, X: pd.DataFrame, y: pd.Series) -> None: 
+        # Performing one hot encoding on categorical features       
         X_encoded = one_hot_encoding(X)
+        # Variable to store the nature of output label
         real_target = check_ifreal(y)
+        # List to store the nature of input features
         real_features = []
         for i in range(X_encoded.shape[1]):
             feature_col = X_encoded.iloc[:, i]

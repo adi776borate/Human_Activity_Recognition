@@ -101,27 +101,33 @@ def information_gain(Y: pd.Series, attr: pd.Series, criterion: str) -> float:
             
         return Gain
 
+# This function is called when the output label is real.
 def get_best_split(X: pd.Series, y: pd.Series,  real, criterion: str='information_gain') -> float:
     best_split_value = None
     best_score = -float('inf') 
 
+    # INput feature is real
     if (real):
+        # Sort the indices based on value of X
         sorted_indices = np.argsort(X)
         sorted_X = X.iloc[sorted_indices]
         sorted_y = y.iloc[sorted_indices]
         
         for i in range(1, len(sorted_X)):
+            # checks various possible splits
             split_value = (sorted_X.iloc[i-1] + sorted_X.iloc[i]) / 2
-            
+            # segregating the series based on split values
             left = sorted_X <= split_value
             if (criterion=='information_gain'):
                 info_gain = information_gain(y, left, 'mse')
             else:
                 info_gain = information_gain(y, left, 'mse')
-
+            # storing the best info gain
             if info_gain > best_score:
                 best_score = info_gain
                 best_split_value = split_value
+
+    # INput feature is discrete
     else:
         if (criterion=='information_gain'):
             best_score = information_gain(y, X, 'mse')
@@ -130,31 +136,35 @@ def get_best_split(X: pd.Series, y: pd.Series,  real, criterion: str='informatio
         
     return best_split_value, best_score
 
-
+# This function is called when the output label is discrete
 def get_best_val(X: pd.Series, y: pd.Series, real, criterion: str='information_gain') -> str:
     best_val = None
     best_info_gain = -float('inf')
     
+    # Discrete feature 
     if (real==0):
         if (criterion=='information_gain'):
             best_info_gain=information_gain(y, X, 'entropy')
         else:
             best_info_gain=information_gain(y, X, 'gini_index')
-        
+    
+    # Real feature
     else:
+        # Sort the indices based on value of X
         sorted_indices = np.argsort(X)
         sorted_X = X.iloc[sorted_indices]
         sorted_y = y.iloc[sorted_indices]
         
         for i in range(1, len(sorted_X)):
+            # checks various possible splits
             split_value = (sorted_X.iloc[i-1] + sorted_X.iloc[i]) / 2
-            
+            # segregating the series based on split values
             left = sorted_X <= split_value
             if (criterion=='information_gain'):
                 info_gain = information_gain(y, left, 'entropy')
             else:
                 info_gain = information_gain(y, left, 'gini_index')
-
+            # storing the best info gain
             if info_gain > best_info_gain:
                 best_info_gain = info_gain
                 best_val = split_value
@@ -182,6 +192,7 @@ def opt_split_attribute(X: pd.DataFrame, y: pd.Series, features: pd.Series, real
         for i in features:
             split, info_gain = get_best_split(X.loc[:,i], y, real_feature[c], criterion)
             c += 1
+            # Gets the best info gain and split among various features 
             if info_gain>best_info_gain:
                 best_info_gain=info_gain
                 best_split=split
@@ -191,6 +202,7 @@ def opt_split_attribute(X: pd.DataFrame, y: pd.Series, features: pd.Series, real
         for i in features:
             split, info_gain = get_best_val(X.loc[:,i], y, real_feature[c], criterion)
             c += 1
+            # Gets the best info gain and split among various features 
             if info_gain>best_info_gain:
                 best_info_gain=info_gain
                 best_split=split
