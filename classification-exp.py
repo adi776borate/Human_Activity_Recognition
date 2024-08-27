@@ -40,7 +40,7 @@ k = 5
 
 predictions = {}
 accuracies = []
-
+super_hypers = []
 fold_size = len(X_train) // k
 
 for i in range(k):
@@ -50,21 +50,22 @@ for i in range(k):
     test_set = pd.DataFrame(X_train[test_start:test_end])
     test_labels = pd.Series(y_train[test_start:test_end])
     
-    training_set = pd.DataFrame(np.concatenate((X_train[:test_start], X[test_end:]), axis=0))
-    training_labels = pd.Series(np.concatenate((y_train[:test_start], y[test_end:]), axis=0))
+    training_set = pd.DataFrame(np.concatenate((X_train[:test_start], X_train[test_end:]), axis=0))
+    training_labels = pd.Series(np.concatenate((y_train[:test_start], y_train[test_end:]), axis=0))
+
     
     best_hypers = []
-    inner_fold = len(X_train) // k
+    inner_fold = len(training_set) // k
     for j in range(k):
         val_beg = j * inner_fold
         val_fin = (j+1) * inner_fold
         val_X = pd.DataFrame(training_set[val_beg:val_fin])
         val_y = pd.Series(training_labels[val_beg:val_fin])
-        
-        training_X = pd.DataFrame(np.concatenate((X[:val_beg], X[val_fin:]), axis=0))
-        training_y = pd.Series(np.concatenate((y[:val_beg], y[val_fin:]), axis=0))
+        training_X = pd.DataFrame(np.concatenate((training_set[:val_beg], training_set[val_fin:]), axis=0))
+        training_y = pd.Series(np.concatenate((training_labels[:val_beg], training_labels[val_fin:]), axis=0))
+
         hyperparameters = {}
-        hyperparameters['max_depth'] = [4,6,8,10,12]
+        hyperparameters['max_depth'] = [4,6,8,10,12,14]
         hyperparameters['criterion'] = ['information_gain', 'gini_index']
 
         max_score = 0
@@ -83,6 +84,8 @@ for i in range(k):
 
         best_hypers.append([best_depth, best_criterion])
     
+    super_depth = 0
+    super_criterion = "information_gain"
     max_accuracy = 0
     for l in range(len(best_hypers)):
         model = DecisionTree(criterion=best_hypers[l][1], max_depth=best_hypers[l][0])
@@ -91,11 +94,19 @@ for i in range(k):
         acc = accuracy(y_pred, test_labels)
         if (acc>max_accuracy):
             max_accuracy = acc
+            super_depth = best_hypers[l][0]
+            super_criterion = best_hypers[l][1]
+
     
+    super_hypers.append([super_depth, super_criterion])
     accuracies.append(max_accuracy)
                 
 
 # Print the predictions and accuracies of each fold
 for i in range(k):
-    print(accuracies[i])
     print("Fold {}: Accuracy: {:.4f}".format(i+1, accuracies[i]))
+    super_model = DecisionTree(criterion=super_hypers[i][1], max_depth=super_hypers[i][0])
+    super_model.fit(X_train, y_train)
+    Y_hat = super_model.predict(X_test)
+    Acc = accuracy(Y_hat, y_test)
+    print("Model {}: Accuracy on test: {:.4f}".format(i+1, Acc))
