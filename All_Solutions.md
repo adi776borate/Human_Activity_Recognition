@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This project focuses on Human Activity Recognition (HAR) using accelerometer data. The goal is to accurately classify activities such as walking, sitting, standing, etc., based on sensor data. The project is divided into several tasks, each addressing a specific aspect of the recognition process.
+This project focuses on Human Activity Recognition (HAR) using accelerometer data. The goal is to accurately classify activities such as walking, sitting, standing, etc., based on accelerometer data. The project is divided into several tasks, each addressing a specific aspect of the recognition process.
 
 ## Project Structure
 
@@ -21,7 +21,6 @@ Used the decision tree models trained on three different methods from Task 2 to 
 ### Decision Tree Notebook (located in the root folder)
 - **[DecisionTree.ipynb](Decision_Tree.ipynb)**: Implemented and analyzed a decision tree model from scratch,
 covering all four cases: i) discrete features, discrete output; ii) discrete features, real output; iii) real features, discrete output; iv) real features, real output.
-Additionally, used 5-fold cross-validation to find the optimal tree depth.
 
 ## How to Use
 
