@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_squared_error
 from tree.base import DecisionTree
 from metrics import *
 
@@ -29,9 +30,9 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 sklearn_tree = DecisionTreeRegressor(max_depth=5, random_state=21)
 sklearn_tree.fit(X_train, y_train)
 y_pred_sklearn = sklearn_tree.predict(X_test)
-sklearn_r2 = sklearn_tree.score(X_test, y_test)
+rms = np.sqrt(mean_squared_error(y_test, y_pred_sklearn))
 sklearn_mae = mean_absolute_error(y_test, y_pred_sklearn)
-print("Scikit-learn Decision Tree R^2: {:.4f}".format(sklearn_r2))
+print("Root Mean Square Error (RMSE):", rms)
 print("Mean Absolute Error (MAE): {:.4f}".format(sklearn_mae))
 
 
